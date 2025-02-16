@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import SwiftData
+
 
 @main
 struct __MapKit__App: App {
@@ -13,5 +15,6 @@ struct __MapKit__App: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: Destination.self)
     }
 }

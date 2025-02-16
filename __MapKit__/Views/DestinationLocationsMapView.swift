@@ -7,22 +7,23 @@
 
 import SwiftUI
 import MapKit
-
+import SwiftData
 
 struct DestinationLocationsMapView: View {
     
     @State private var cameraPosition: MapCameraPosition = .automatic
     @State private var visibleRegion: MKCoordinateRegion?
     
+    @Query private var destinations: [Destination]
+    @State private var destination: Destination?
     
     var body: some View {
         Map_Content
-            .onAppear {
-                let paris = CLLocationCoordinate2D(latitude: 48.856788, longitude: 2.351077)
-                let parisSpan = MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
-                let parisRegion = MKCoordinateRegion(center: paris, span: parisSpan)
-                
-                cameraPosition = .region(parisRegion)
+            .onAppear{
+                destination = destinations.first
+                if let region = destination?.region {
+                    cameraPosition = .region(region)
+                }
             }
             .onMapCameraChange(frequency: .onEnd) { context in
                 visibleRegion = context.region
@@ -32,12 +33,36 @@ struct DestinationLocationsMapView: View {
     
     private var Map_Content: some View {
         Map(position: $cameraPosition) {
-            Marker("Eiffel Tower", systemImage: "building.circle", coordinate: .eiffelTower)
-                .tint(.green)
+            if let destination {
+                ForEach(destination.placeMark) { placemark in
+                    Marker(coordinate: placemark.coordinate) {
+                        Label(placemark.name, systemImage: "mappin.circle.fill")
+                    }
+                }
+            }
         }
     }
 }
-
+/*
 #Preview {
-    DestinationLocationsMapView()
+    let preview = Preview(Destination.self)
+    
+    let placeMarks = MTPlaceMark.samplePlaceMarks
+    let destination = Destination.sampleDestinations[0]
+    
+    let newDestination = Destination(name: destination.name, latitude: destination.latitude, longitude: destination.longitude, latitudeDelta: destination.latitudeDelta, longitudeDelta: destination.longitudeDelta, placeMark: placeMarks)
+    
+    preview.addExamples([destination])
+    return DestinationLocationsMapView()
+            .modelContainer(preview.container)
 }
+*/
+
+#Preview{
+    DestinationLocationsMapView()
+        .modelContainer(Destination.preview)
+}
+
+
+
+
