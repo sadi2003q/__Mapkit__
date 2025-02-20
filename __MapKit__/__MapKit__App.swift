@@ -15,6 +15,6 @@ struct __MapKit__App: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: Destination.self)
+        
     }
 }
