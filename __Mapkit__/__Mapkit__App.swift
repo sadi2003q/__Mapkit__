@@ -6,12 +6,24 @@
 //
 
 import SwiftUI
+import SwiftData
+
 
 @main
 struct __Mapkit__App: App {
+    
+    @State private var locationManager = LocationManager()
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if locationManager.isAuthorized {
+                StartTab()
+            } else {
+                LocationDeniedView()
+            }
         }
+        .modelContainer(for: Destination.self)
+        .environment(locationManager)
+        
     }
 }
