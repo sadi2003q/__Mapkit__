@@ -9,22 +9,18 @@ import SwiftUI
 import MapKit
 import SwiftData
 
-
 struct LocationDetailsView: View {
-    
     @Environment(\.dismiss) private var dismiss
-    
     var destination: Destination?
     var selectedPlacemark: MTPlacemark?
+    var onShowRoute: ((MTPlacemark) -> Void)?
     
     @State private var name: String = ""
     @State private var address: String = ""
-    
-    @State private var lookaroundScene : MKLookAroundScene?
+    @State private var lookaroundScene: MKLookAroundScene?
     
     var isChange: Bool {
         guard let selectedPlacemark else { return false }
-        
         return (name != selectedPlacemark.name || address != selectedPlacemark.address)
     }
     
@@ -69,16 +65,17 @@ struct LocationDetailsView: View {
                         .imageScale(.large)
                         .foregroundStyle(.gray)
                 }
-               
             }
+            
             if let lookaroundScene {
-                            LookAroundPreview(initialScene: lookaroundScene)
+                LookAroundPreview(initialScene: lookaroundScene)
                     .clipShape(RoundedRectangle(cornerRadius: 20))
-                                .frame(height: 200)
-                                .padding()
-                        } else {
-                            ContentUnavailableView("No preview available", systemImage: "eye.slash")
-                        }
+                    .frame(height: 200)
+                    .padding()
+            } else {
+                ContentUnavailableView("No preview available", systemImage: "eye.slash")
+            }
+            
             HStack {
                 Spacer()
                 if let destination {
@@ -95,13 +92,12 @@ struct LocationDetailsView: View {
                     } label: {
                         Label(
                             inList ? "Remove" : "Add",
-                            systemImage: inList ? "minum.circle" : "plus.circle"
+                            systemImage: inList ? "minus.circle" : "plus.circle"
                         )
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(inList ? .red : .green)
                     .disabled((name.isEmpty || isChange))
-
                 } else {
                     HStack {
                         Button("Open in maps", systemImage: "map") {
@@ -113,8 +109,12 @@ struct LocationDetailsView: View {
                             }
                         }
                         .fixedSize(horizontal: true, vertical: false)
+                        
                         Button("Show Route", systemImage: "location.north") {
-                            
+                            if let selectedPlacemark {
+                                onShowRoute?(selectedPlacemark)
+                                dismiss()
+                            }
                         }
                         .fixedSize(horizontal: true, vertical: false)
                     }
@@ -127,12 +127,12 @@ struct LocationDetailsView: View {
         .task(id: selectedPlacemark) {
             await fetchLookAroundPreview()
         }
-            .onAppear {
-                if let selectedPlacemark, destination != nil {
-                    name = selectedPlacemark.name
-                    address = selectedPlacemark.address
-                }
+        .onAppear {
+            if let selectedPlacemark, destination != nil {
+                name = selectedPlacemark.name
+                address = selectedPlacemark.address
             }
+        }
     }
     
     func fetchLookAroundPreview() async {
@@ -142,17 +142,10 @@ struct LocationDetailsView: View {
             lookaroundScene = try? await lookaroundRequest.scene
         }
     }
-    
-    
 }
 
 #Preview {
-    let container = Destination.preview
-    let fetchDescriptor = FetchDescriptor<Destination>()
-    let destination = try! container.mainContext.fetch(fetchDescriptor)[0]
-    let selectedPlacemark = destination.placemarks[0]
-    return LocationDetailsView(
-        destination: destination,
-        selectedPlacemark: selectedPlacemark
-    )
+    TripMapView()
+        .environment(LocationManager())
+        .modelContainer(Destination.preview)
 }

@@ -9,63 +9,53 @@ import SwiftUI
 import SwiftData
 
 
+/// To show all the destination store in to the database.
 struct DestinationsLisView: View {
     
+    /// Model container for the Data container
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Destination.name) private var destinations: [Destination]
-    @State private var newDestination: Bool = false
     
+    /// This is for Fetching the Data into the Data container which are Destination type
+    /// - to store the show the Data into list format.
+    @Query(sort: \Destination.name) private var destinations: [Destination]
+    
+    
+    /// **Variable**
+    ///     - `newDestination` to toggle this sheet for storing making new Destination
+    ///     - `destinationName` name of the new Destination
+    @State private var newDestination: Bool = false
     @State private var destinationName: String = ""
     
+    
+    /// To Navigate with Specific Type
     @State private var path = NavigationPath()
     
     var body: some View {
         NavigationStack(path: $path) {
             Group {
                 if !destinations.isEmpty {
-                    List(destinations, id: \.self) { destination in
-                        NavigationLink(value: destination) {
-                        
-                                HStack {
-                                    Image(systemName: "globe")
-                                        .imageScale(.large)
-                                        .foregroundStyle(.primary)
-                                    VStack(alignment: .leading) {
-                                        Text(destination.name)
-                                        Text("^[\(destination.placemarks.count) location](inflect: true)")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
-                        }
-                            .swipeActions(edge: .trailing) {
-                                Button(role: .destructive) {
-                                    modelContext.delete(destination)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                        
-                    }
+                    
+                    /// Location Information
+                    List_LocationDetails
+                    
+                    /// Navigate to the New View with Destination
                     .navigationDestination(for: Destination.self) { destination in
                         DestinationLocationsMapView(destination: destination)
                     }
-                            
+                    
                 } else {
-                    ContentUnavailableView(
-                        "No Destination Found",
-                        systemImage: "globe.desk",
-                        description: Text("NO Destination found Please setup one")
-                    )
+                    /// if No Data found in Data Container
+                    ContentNotAvailable
                 }
             }
             .navigationTitle("My Destinations")
             .toolbar {
-                Button {
-                    newDestination.toggle()
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                }
+                
+                
+                ///Button for Adding new Destination
+                Button_NewDestination
+                
+                /// New Destination Information
                 .alert(
                     "Enter Destination Name",
                     isPresented: $newDestination) {
@@ -87,6 +77,50 @@ struct DestinationsLisView: View {
             }
         }
     }
+    
+    private var List_LocationDetails: some View {
+        List(destinations, id: \.self) { destination in
+            NavigationLink(value: destination) {
+                
+                HStack {
+                    Image(systemName: "globe")
+                        .imageScale(.large)
+                        .foregroundStyle(.primary)
+                    VStack(alignment: .leading) {
+                        Text(destination.name)
+                        Text("^[\(destination.placemarks.count) location](inflect: true)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .swipeActions(edge: .trailing) {
+                Button(role: .destructive) {
+                    modelContext.delete(destination)
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            }
+            
+        }
+    }
+    
+    private var ContentNotAvailable: some View {
+        ContentUnavailableView(
+            "No Destination Found",
+            systemImage: "globe.desk",
+            description: Text("NO Destination found Please setup one")
+        )
+    }
+    
+    private var Button_NewDestination: some View {
+        Button {
+            newDestination.toggle()
+        } label: {
+            Image(systemName: "plus.circle.fill")
+        }
+    }
+    
 }
 
 #Preview {

@@ -1,13 +1,9 @@
 //
-// Created for MyTrips
-// by  Stewart Lynch on 2023-12-31
+//  LocationManager.swift
+//  __Mapkit__
 //
-// Follow me on Mastodon: @StewartLynch@iosdev.space
-// Follow me on Threads: @StewartLynch (https://www.threads.net)
-// Follow me on X: https://x.com/StewartLynch
-// Follow me on LinkedIn: https://linkedin.com/in/StewartLynch
-// Subscribe on YouTube: https://youTube.com/@StewartLynch
-// Buy me a ko-fi:  https://ko-fi.com/StewartLynch
+//  Created by  Sadi on 24/02/2025.
+//
 
 
 import SwiftUI
@@ -16,65 +12,72 @@ import SwiftData
 
 struct DestinationLocationsMapView: View {
     
+    
+    
+    /// Model Container for the Database
     @Environment(\.modelContext) private var modelContext
+    
+    
+    ///  typically used in SwiftUI to control the position and zoom level of a map view
     @State private var cameraPosition: MapCameraPosition = .automatic
+    
+    
+    /// structure used in MapKit to define a region of the map, which includes a canter coordinate (latitude and longitude) and a span (which defines the zoom level).
     @State private var visibleRegion: MKCoordinateRegion?
     
+    
+    /// **Variable**
+    ///     - Search text - For Search Category name
+    ///     - SearchFieldFocus - For Focus Related Work on the Field
     @State private var searchText = ""
     @FocusState private var searchFieldFocus: Bool
     
+    
+    /// All the Location in the Database where Type is MTPlacemark and inside their destination is nil
     @Query(filter: #Predicate<MTPlacemark> {$0.destination == nil}) private var searchPlacemarks: [MTPlacemark]
+    
+    
+    /// Combination of all those who are In the Database
     private var listPlacemarks: [MTPlacemark] {
         searchPlacemarks + destination.placemarks
     }
     
+    
+    /// Binding Variable
+    /// Camera Position will be based on this Variable
     var destination: Destination
     
     @State private var isManualMarker = false
+    
+    
+    /// For Selecting Search Result and Showing Details
     @State private var selectedPlacemarks: MTPlacemark?
     
-    
-    
+
     var body: some View {
-        @Bindable var destination = destination
+        
         VStack {
-            LabeledContent {
-                TextField(destination.name, text: $destination.name)
-                    .textFieldStyle(.roundedBorder)
-                    .foregroundStyle(.primary)
-            } label: {
-                Text("Name: ")
-            }
-            HStack {
-                Text("Adjust the map to set the region for your destination.")
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button("Set region") {
-                    if let visibleRegion {
-                        destination.latitude = visibleRegion.center.latitude
-                        destination.longitude = visibleRegion.center.longitude
-                        destination.latitudeDelta = visibleRegion.span.latitudeDelta
-                        destination.longitudeDelta = visibleRegion.span.longitudeDelta
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-            }
+#warning("Here I am not Sure")
+            LabeledContent_CurrentDestinationInformation
+            View_AdjustMap
             
         }
         .padding()
-        MapReader { proxy in
+        
+        MapReader { proxy in ///  To Captured the tapped Position on the Map and show the Location Details (Combining with
+            ///on tap gesture)
             Map(position: $cameraPosition, selection: $selectedPlacemarks) {
                 
                 ForEach(listPlacemarks) { placemark in
                     if isManualMarker {
                         if placemark.destination != nil {
-                                                    Marker(coordinate: placemark.coordinate) {
-                                                        Label(placemark.name, systemImage: "star")
-                                                    }
-                                                    .tint(.yellow)
-                                                } else {
-                                                    Marker(placemark.name, coordinate: placemark.coordinate)
-                                                }
+                            Marker(coordinate: placemark.coordinate) {
+                                Label(placemark.name, systemImage: "star")
+                            }
+                            .tint(.yellow)
+                        } else {
+                            Marker(placemark.name, coordinate: placemark.coordinate)
+                        }
                     } else {
                         Group{
                             if placemark.destination != nil {
@@ -85,7 +88,7 @@ struct DestinationLocationsMapView: View {
                             } else {
                                 Marker(placemark.name, coordinate: placemark.coordinate)
                             }
-                        }.tag(placemark)
+                        }.tag(placemark) ///  Here is the Difference
                     }
                     
                 }
@@ -93,6 +96,9 @@ struct DestinationLocationsMapView: View {
             }
             .onTapGesture { position in
                 
+                /// when tapping into the Display, if the variable is true then convert the tapped position into coordinate and store that
+                /// into the selected Placemark and also storing that into the database so Marker is being initialised to mark the position into
+                /// the map
                 if isManualMarker {
                     if let coordinate = proxy.convert(position
                                                       , from: .local) {
@@ -188,6 +194,35 @@ struct DestinationLocationsMapView: View {
         }
         .onDisappear {
             MapManager.removeSearchResults(modelContext)
+        }
+    }
+    
+    
+    private var LabeledContent_CurrentDestinationInformation: some View {
+        LabeledContent {
+            @Bindable var destination = destination
+            TextField(destination.name, text: $destination.name)
+                .textFieldStyle(.roundedBorder)
+                .foregroundStyle(.primary)
+        } label: {
+            Text("Name: ")
+        }
+    }
+    
+    private var View_AdjustMap: some View {
+        HStack {
+            Text("Adjust the map to set the region for your destination.")
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button("Set region") {
+                if let visibleRegion {
+                    destination.latitude = visibleRegion.center.latitude
+                    destination.longitude = visibleRegion.center.longitude
+                    destination.latitudeDelta = visibleRegion.span.latitudeDelta
+                    destination.longitudeDelta = visibleRegion.span.longitudeDelta
+                }
+            }
+            .buttonStyle(.borderedProminent)
         }
     }
 }
