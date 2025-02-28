@@ -12,6 +12,19 @@ import MapKit
 
 enum MapManager {
     
+    /// Search Function
+    /// - Parameters:
+    ///   - modelContext: Database container
+    ///   - searchText: search text from the user
+    ///   - visibleRegion: area within the search will be conducted
+    /// - **Method**:
+    ///     - make a request variable of MkLocalSearch ``request``
+    ///     - set visible natural language property to the  request variable
+    ///     - apply region to the visible region if it is available for the option
+    ///     - apply search
+    ///     - assign search result to ``searchItems`` variable
+    ///     - assign mapItem from searchItems to ``result``
+    ///     - run a loop on the result then make MTPlacemark item for each result item and assign into the database
     @MainActor
     static func searchPlaces(_ modelContext: ModelContext, searchText: String, visibleRegion: MKCoordinateRegion?) async {
         let request = MKLocalSearch.Request()
@@ -38,6 +51,8 @@ enum MapManager {
     
     
     
+    /// To Remove all search result from the data container
+    /// - Parameter modelContext: database container
     static func removeSearchResults(_ modelContext: ModelContext) {
         let searchPredicate = #Predicate<MTPlacemark> { $0.destination == nil }
         try? modelContext.delete(model: MTPlacemark.self, where: searchPredicate)

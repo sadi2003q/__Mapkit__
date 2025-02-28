@@ -22,18 +22,24 @@ struct LocationDeniedView: View {
                 .multilineTextAlignment(.leading)
             },
                                    actions: {
-                Button(action: {
-                    UIApplication.shared.open(
-                        URL(string: UIApplication.openSettingsURLString)!,
-                        options: [:],
-                        completionHandler: nil
-                    )
-                }) {
-                    Text("Open Settings")
-                }
-                .buttonStyle(.borderedProminent)
+                /// ``Button_OpenSetting``
+                Button_OpenSetting
             })
         }
+    
+    /// Open Setting to allow Location information
+    private var Button_OpenSetting: some View {
+        Button(action: {
+            UIApplication.shared.open(
+                URL(string: UIApplication.openSettingsURLString)!,
+                options: [:],
+                completionHandler: nil
+            )
+        }) {
+            Text("Open Settings")
+        }
+        .buttonStyle(.borderedProminent)
+    }
 }
 
 #Preview {

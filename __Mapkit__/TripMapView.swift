@@ -2,21 +2,60 @@ import SwiftUI
 import MapKit
 import SwiftData
 
+///
+///  TripMapView.swift
+///
+///  ## TripMapView
+///  An interactive map view for managing trip locations, searching for places,
+///  and displaying routes using `MapKit` and `SwiftData`.
+///
+///  ### Features:
+///  - Displays user location with animated marker
+///  - Shows saved placemarks and highlights destinations
+///  - Provides a search bar for finding locations
+///  - Calculates and displays routes between user and a selected destination
+///
+///  This view integrates with `LocationManager` to track user movement and
+///  `MapManager` to handle search queries and route calculations.
+///
+///  Created by Adnan
+///
 struct TripMapView: View {
-    @Environment(\.modelContext) private var modelContext
+    /// The shared model context for data persistence.
+    @Environment(\ .modelContext) private var modelContext
+    
+    /// The visible region of the map.
     @State private var visibleRegion: MKCoordinateRegion?
+    
+    /// The location manager to track user location.
     @Environment(LocationManager.self) var locationManager
+    
+    /// The camera position of the map, initially set to user location.
     @State private var cameraPosition: MapCameraPosition = .userLocation(fallback: .automatic)
+    
+    /// List of placemarks stored in the database.
     @Query private var listPlacemark: [MTPlacemark]
     
-    // Search
+    // MARK: - Search Properties
+    
+    /// The search query text.
     @State private var searchText = ""
+    
+    /// Focus state for the search field.
     @FocusState private var searchFieldFocus: Bool
+    
+    /// List of placemarks that are not yet set as a destination.
     @Query(filter: #Predicate<MTPlacemark> {$0.destination == nil}) private var searchPlacemarks: [MTPlacemark]
+    
+    /// The selected placemark from search results.
     @State private var selectedPlacemark: MTPlacemark?
     
-    // Route
+    // MARK: - Route Properties
+    
+    /// The computed route from the user location to the selected placemark.
     @State private var route: MKRoute?
+    
+    /// A flag to determine whether to show the route.
     @State private var showRoute = false
     
     var body: some View {
@@ -26,7 +65,7 @@ struct TripMapView: View {
                     .frame(width: 100, height: 100)
             }
             
-            ForEach(listPlacemark, id: \.self) { placemark in
+            ForEach(listPlacemark, id: \ .self) { placemark in
                 Group {
                     if placemark.destination != nil {
                         Marker(coordinate: placemark.coordinate) {
@@ -113,6 +152,7 @@ struct TripMapView: View {
         }
     }
     
+    /// Updates the camera position based on the user's current location.
     func updateCameraPosition() {
         if let userLocation = locationManager.userLocation {
             let userRegion = MKCoordinateRegion(
@@ -128,6 +168,8 @@ struct TripMapView: View {
         }
     }
     
+    /// Calculates and updates the route to a given placemark.
+    /// - Parameter placemark: The destination placemark.
     private func calculateRoute(to placemark: MTPlacemark) async {
         guard let userLocation = locationManager.userLocation else { return }
         
@@ -155,6 +197,7 @@ struct TripMapView: View {
     }
 }
 
+/// An animated symbol to represent the user's current location.
 struct AnimatedPositionSymbol: View {
     @State private var animate = false
     

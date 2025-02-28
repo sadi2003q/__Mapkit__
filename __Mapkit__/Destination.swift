@@ -2,24 +2,64 @@
 //  LocationManager.swift
 //  __Mapkit__
 //
-//  Created by  Sadi on 24/02/2025.
+//  Created by Sadi on 24/02/2025.
 //
-
-
 
 import SwiftData
 import MapKit
 
+/// A data model representing a destination with a name, coordinates, and a list of placemarks.
+///
+/// The `Destination` class stores information about a specific location,
+/// including its name, latitude, longitude, and a collection of associated placemarks.
+/// It conforms to `@Model` for use with SwiftData.
+///
+/// ## Topics
+/// - Properties
+/// - Initialization
+/// - Computed Properties
+/// - Preview Data
+///
 @Model
 class Destination {
+    
+    // MARK: - Properties
+    
+    /// The name of the destination.
     var name: String
+    
+    /// The latitude coordinate of the destination. Can be `nil` if not provided.
     var latitude: Double?
+    
+    /// The longitude coordinate of the destination. Can be `nil` if not provided.
     var longitude: Double?
+    
+    /// The latitude span of the region around the destination. Can be `nil`.
     var latitudeDelta: Double?
+    
+    /// The longitude span of the region around the destination. Can be `nil`.
     var longitudeDelta: Double?
+    
+    /// A list of placemarks associated with this destination.
+    ///
+    /// This property establishes a **one-to-many** relationship between `Destination` and `MTPlacemark`.
+    /// The `@Relationship(deleteRule: .cascade)` ensures that when a destination is deleted,
+    /// all associated placemarks are also removed.
     @Relationship(deleteRule: .cascade)
     var placemarks: [MTPlacemark] = []
     
+    // MARK: - Initialization
+    
+    /// Initializes a `Destination` instance with optional coordinate and region span values.
+    ///
+    /// - Parameters:
+    ///   - name: The name of the destination.
+    ///   - latitude: The latitude coordinate of the destination. Default is `nil`.
+    ///   - longitude: The longitude coordinate of the destination. Default is `nil`.
+    ///   - latitudeDelta: The latitude span for defining the visible region. Default is `nil`.
+    ///   - longitudeDelta: The longitude span for defining the visible region. Default is `nil`.
+    ///
+    /// - Returns: A newly initialized `Destination` instance.
     init(name: String, latitude: Double? = nil, longitude: Double? = nil, latitudeDelta: Double? = nil, longitudeDelta: Double? = nil) {
         self.name = name
         self.latitude = latitude
@@ -28,6 +68,14 @@ class Destination {
         self.longitudeDelta = longitudeDelta
     }
     
+    // MARK: - Computed Properties
+    
+    /// The coordinate region of the destination.
+    ///
+    /// This property computes an `MKCoordinateRegion` if all required values (`latitude`, `longitude`,
+    /// `latitudeDelta`, and `longitudeDelta`) are provided. Otherwise, it returns `nil`.
+    ///
+    /// - Returns: An optional `MKCoordinateRegion` representing the location and span.
     var region: MKCoordinateRegion? {
         if let latitude, let longitude, let latitudeDelta, let longitudeDelta {
             return MKCoordinateRegion(
@@ -40,7 +88,16 @@ class Destination {
     }
 }
 
+// MARK: - Preview Data
+
 extension Destination {
+    
+    /// Provides a preview `ModelContainer` with sample destination and placemarks.
+    ///
+    /// This static property creates an in-memory data container containing a sample `Destination`
+    /// (Paris) with multiple well-known locations (e.g., Eiffel Tower, Louvre Museum).
+    ///
+    /// - Returns: A `ModelContainer` with a sample destination and placemarks.
     @MainActor
     static var preview: ModelContainer {
         let container = try! ModelContainer(
@@ -49,8 +106,8 @@ extension Destination {
                 isStoredInMemoryOnly: true
             )
         )
-//        let paris = CLLocationCoordinate2D(latitude: 48.856788, longitude: 2.351077)
-//        let parisSpan = MKCoordinateSpan(latitudeDelta: 0.15, longitudeDelta: 0.15)
+        
+        // Sample destination (Paris)
         let paris = Destination(
             name: "Paris",
             latitude: 48.856788,
@@ -59,6 +116,8 @@ extension Destination {
             longitudeDelta: 0.15
         )
         container.mainContext.insert(paris)
+        
+        // Sample placemarks in Paris
         var placeMarks: [MTPlacemark] {
             [
                 MTPlacemark(name: "Louvre Museum", address: "93 Rue de Rivoli, 75001 Paris, France", latitude: 48.861950, longitude: 2.336902),
@@ -71,9 +130,12 @@ extension Destination {
                 MTPlacemark(name: "Panthéon", address: "Place du Panthéon, 75005 Paris, France", latitude: 48.845616, longitude: 2.345996),
             ]
         }
-        placeMarks.forEach {placemark in
+        
+        // Associate placemarks with Paris
+        placeMarks.forEach { placemark in
             paris.placemarks.append(placemark)
         }
+        
         return container
     }
 }
