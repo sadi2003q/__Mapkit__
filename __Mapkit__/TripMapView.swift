@@ -3,31 +3,31 @@ import MapKit
 import SwiftData
 
 struct TripMapView: View {
-    
     @Environment(\.modelContext) private var modelContext
     @State private var visibleRegion: MKCoordinateRegion?
     @Environment(LocationManager.self) var locationManager
     @State private var cameraPosition: MapCameraPosition = .userLocation(fallback: .automatic)
     @Query private var listPlacemark: [MTPlacemark]
     
-    
-    //Search
+    // Search
     @State private var searchText = ""
     @FocusState private var searchFieldFocus: Bool
-    
     @Query(filter: #Predicate<MTPlacemark> {$0.destination == nil}) private var searchPlacemarks: [MTPlacemark]
-    
     @State private var selectedPlacemark: MTPlacemark?
+    
+    // Route
+    @State private var route: MKRoute?
+    @State private var showRoute = false
     
     var body: some View {
         Map(position: $cameraPosition, selection: $selectedPlacemark) {
-            UserAnnotation{
+            UserAnnotation {
                 AnimatedPositionSymbol()
                     .frame(width: 100, height: 100)
             }
             
             ForEach(listPlacemark, id: \.self) { placemark in
-                Group{
+                Group {
                     if placemark.destination != nil {
                         Marker(coordinate: placemark.coordinate) {
                             Label(placemark.name, systemImage: "star")
@@ -38,11 +38,24 @@ struct TripMapView: View {
                     }
                 }.tag(placemark)
             }
+            
+            if let route = route, showRoute {
+                MapPolyline(route.polyline)
+                    .stroke(.blue, lineWidth: 5)
+            }
         }
         .sheet(item: $selectedPlacemark) { selectedPlacemark in
-            LocationDetailsView(selectedPlacemark: selectedPlacemark)
-                        .presentationDetents([.height(450)])
+            LocationDetailsView(
+                selectedPlacemark: selectedPlacemark,
+                onShowRoute: { placemark in
+                    Task {
+                        await calculateRoute(to: placemark)
+                        showRoute = true
+                    }
                 }
+            )
+            .presentationDetents([.height(450)])
+        }
         .mapControls {
             MapUserLocationButton()
         }
@@ -98,8 +111,6 @@ struct TripMapView: View {
                 .buttonBorderShape(.circle)
             }
         }
-        
-        
     }
     
     func updateCameraPosition() {
@@ -115,19 +126,40 @@ struct TripMapView: View {
                 cameraPosition = .region(userRegion)
             }
         }
-            
     }
     
-    
+    private func calculateRoute(to placemark: MTPlacemark) async {
+        guard let userLocation = locationManager.userLocation else { return }
+        
+        let request = MKDirections.Request()
+        request.source = MKMapItem(placemark: MKPlacemark(coordinate: userLocation.coordinate))
+        request.destination = MKMapItem(placemark: MKPlacemark(coordinate: placemark.coordinate))
+        request.transportType = .automobile
+        
+        do {
+            let directions = MKDirections(request: request)
+            let response = try await directions.calculate()
+            if let firstRoute = response.routes.first {
+                route = firstRoute
+                let routeRegion = firstRoute.polyline.boundingMapRect
+                cameraPosition = .rect(MKMapRect(
+                    x: routeRegion.origin.x - routeRegion.size.width * 0.2,
+                    y: routeRegion.origin.y - routeRegion.size.height * 0.2,
+                    width: routeRegion.size.width * 1.4,
+                    height: routeRegion.size.height * 1.4
+                ))
+            }
+        } catch {
+            print("Error calculating route: \(error)")
+        }
+    }
 }
-
 
 struct AnimatedPositionSymbol: View {
     @State private var animate = false
     
     var body: some View {
         ZStack {
-            // Outer pulsing circle
             Circle()
                 .fill(Color.blue.opacity(0.2))
                 .frame(width: 50, height: 50)
@@ -135,7 +167,6 @@ struct AnimatedPositionSymbol: View {
                 .opacity(animate ? 0 : 1)
                 .animation(Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: false), value: animate)
             
-            // Inner pulsing circle
             Circle()
                 .fill(Color.blue.opacity(0.4))
                 .frame(width: 30, height: 30)
@@ -143,7 +174,6 @@ struct AnimatedPositionSymbol: View {
                 .opacity(animate ? 0 : 1)
                 .animation(Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: false).delay(0.5), value: animate)
             
-            // Pin symbol
             Image(systemName: "mappin.circle.fill")
                 .resizable()
                 .scaledToFit()
@@ -155,14 +185,4 @@ struct AnimatedPositionSymbol: View {
             animate = true
         }
     }
-}
-
-#Preview {
-    TripMapView()
-        .environment(LocationManager())
-        .modelContainer(Destination.preview)
-    //LocationPinView()
-//    AnimatedPositionSymbol()
-    
-    
 }
