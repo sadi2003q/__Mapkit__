@@ -47,6 +47,7 @@ struct DestinationLocationsMapView: View {
     /// Camera Position will be based on this Variable
     var destination: Destination
     
+    /// Toggle between onTap Locations and Search result Locations
     @State private var isManualMarker = false
     
     
@@ -64,8 +65,8 @@ struct DestinationLocationsMapView: View {
         }
         .padding()
         
-        MapReader { proxy in ///  To Captured the tapped Position on the Map and show the Location Details (Combining with
-            ///on tap gesture)
+        // Map reader + onTap gesture --> ontap Location mark
+        MapReader { proxy in
             Map(position: $cameraPosition, selection: $selectedPlacemarks) {
                 
                 ForEach(listPlacemarks) { placemark in
@@ -96,9 +97,7 @@ struct DestinationLocationsMapView: View {
             }
             .onTapGesture { position in
                 
-                /// when tapping into the Display, if the variable is true then convert the tapped position into coordinate and store that
-                /// into the selected Placemark and also storing that into the database so Marker is being initialised to mark the position into
-                /// the map
+                /// when tapping into the Display, if the variable is true then convert the tapped position into coordinate and store that  into the selected Placemark and also storing that into the database so Marker is being initialised to mark the position into the map
                 if isManualMarker {
                     if let coordinate = proxy.convert(position
                                                       , from: .local) {
@@ -117,66 +116,18 @@ struct DestinationLocationsMapView: View {
         }
         
         .sheet(item: $selectedPlacemarks, onDismiss: {
-            if isManualMarker {
+            if isManualMarker { //remove all marker from model context
                 MapManager.removeSearchResults(modelContext)
             }
-        } , content: { selectedPlacemrk in
+        } , content: { selectedPlacemrk in // pass the selected placemark into the nextView
             LocationDetailsView(destination: destination, selectedPlacemark: selectedPlacemrk)
                 .presentationDetents([.medium])
         })
         .safeAreaInset(edge: .bottom) {
             VStack{
-                Toggle(isOn: $isManualMarker) {
-                    Label("Tap marker placement is: \(isManualMarker ? "ON" : "OFF")", systemImage: isManualMarker ? "mappin.circle" : "mappin.slash.circle")
-                }
-                .fontWeight(.bold)
-                .toggleStyle(.button)
-                .background(.ultraThinMaterial)
-                .onChange(of: isManualMarker) {
-                    MapManager.removeSearchResults(modelContext)
-                }
+                Button_toggle
                 if !isManualMarker {
-                    HStack {
-                        TextField("Search...", text: $searchText)
-                            .textFieldStyle(.roundedBorder)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                            .focused($searchFieldFocus)
-                            .overlay(alignment: .trailing) {
-                                if searchFieldFocus {
-                                    Button {
-                                        searchText = ""
-                                        searchFieldFocus = false
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                    }
-                                    .offset(x: -5)
-                                }
-                            }
-                            .onSubmit {
-                                Task {
-                                    await MapManager.searchPlaces(
-                                        modelContext,
-                                        searchText: searchText,
-                                        visibleRegion: visibleRegion
-                                    )
-                                    searchText = ""
-                                    cameraPosition = .automatic
-                                }
-                            }
-                        if !searchPlacemarks.isEmpty {
-                            Button {
-                                MapManager.removeSearchResults(modelContext)
-                            }label: {
-                                Image(systemName: "mappin.slash.circle.fill")
-                                    .imageScale(.large)
-                            }
-                            .foregroundStyle(.white)
-                            .padding(8)
-                            .background(.red)
-                            .clipShape(.circle)
-                        }
-                    }
+                    View_Search
                 }
             }
             .padding(.horizontal, 30)
@@ -188,6 +139,7 @@ struct DestinationLocationsMapView: View {
         }
         .onAppear {
             MapManager.removeSearchResults(modelContext)
+            ///Get region into destination position
             if let region = destination.region {
                 cameraPosition = .region(region)
             }
@@ -197,7 +149,66 @@ struct DestinationLocationsMapView: View {
         }
     }
     
+    /// Toggle Button of ``isManualMarker``
+    private var Button_toggle: some View {
+        Toggle(isOn: $isManualMarker) {
+            Label("Tap marker placement is: \(isManualMarker ? "ON" : "OFF")", systemImage: isManualMarker ? "mappin.circle" : "mappin.slash.circle")
+        }
+        .fontWeight(.bold)
+        .toggleStyle(.button)
+        .background(.ultraThinMaterial)
+        .onChange(of: isManualMarker) {
+            MapManager.removeSearchResults(modelContext)
+        }
+    }
     
+    
+    /// Search View with onSubmit action
+    private var View_Search: some View {
+        HStack {
+            TextField("Search...", text: $searchText)
+                .textFieldStyle(.roundedBorder)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .focused($searchFieldFocus)
+                .overlay(alignment: .trailing) {
+                    if searchFieldFocus {
+                        Button {
+                            searchText = ""
+                            searchFieldFocus = false
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                        }
+                        .offset(x: -5)
+                    }
+                }
+                .onSubmit {
+                    Task {
+                        await MapManager.searchPlaces(
+                            modelContext,
+                            searchText: searchText,
+                            visibleRegion: visibleRegion
+                        )
+                        searchText = ""
+                        cameraPosition = .automatic
+                    }
+                }
+            if !searchPlacemarks.isEmpty {
+                Button {
+                    MapManager.removeSearchResults(modelContext)
+                }label: {
+                    Image(systemName: "mappin.slash.circle.fill")
+                        .imageScale(.large)
+                }
+                .foregroundStyle(.white)
+                .padding(8)
+                .background(.red)
+                .clipShape(.circle)
+            }
+        }
+    }
+    
+    /// Display the Destination Details on the top of view
     private var LabeledContent_CurrentDestinationInformation: some View {
         LabeledContent {
             @Bindable var destination = destination
@@ -209,6 +220,7 @@ struct DestinationLocationsMapView: View {
         }
     }
     
+    /// Top Bar text for asking user to set the camera position
     private var View_AdjustMap: some View {
         HStack {
             Text("Adjust the map to set the region for your destination.")

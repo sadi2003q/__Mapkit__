@@ -35,7 +35,7 @@ struct DestinationsLisView: View {
             Group {
                 if !destinations.isEmpty {
                     
-                    /// Location Information
+                    /// Location Information ``List_LocationDetails``
                     List_LocationDetails
                     
                     /// Navigate to the New View with Destination
@@ -44,7 +44,7 @@ struct DestinationsLisView: View {
                     }
                     
                 } else {
-                    /// if No Data found in Data Container
+                    /// if No Data found in Data Container ``ContentNotAvailable``
                     ContentNotAvailable
                 }
             }
@@ -52,7 +52,7 @@ struct DestinationsLisView: View {
             .toolbar {
                 
                 
-                ///Button for Adding new Destination
+                ///Button for Adding new Destination ``Button_NewDestination``
                 Button_NewDestination
                 
                 /// New Destination Information
@@ -78,6 +78,7 @@ struct DestinationsLisView: View {
         }
     }
     
+    /// List View of all Destination on the Database
     private var List_LocationDetails: some View {
         List(destinations, id: \.self) { destination in
             NavigationLink(value: destination) {
@@ -105,6 +106,7 @@ struct DestinationsLisView: View {
         }
     }
     
+    /// View if no Destination is Found on the Database
     private var ContentNotAvailable: some View {
         ContentUnavailableView(
             "No Destination Found",
@@ -113,6 +115,7 @@ struct DestinationsLisView: View {
         )
     }
     
+    /// Button on the Navigation bar to add new Destination with alert
     private var Button_NewDestination: some View {
         Button {
             newDestination.toggle()
